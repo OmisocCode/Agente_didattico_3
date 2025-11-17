@@ -17,7 +17,7 @@ load_dotenv()
 class LLMConfig(BaseModel):
     """LLM provider configuration."""
 
-    provider: Literal["ollama", "openai"] = Field(
+    provider: Literal["ollama", "openai", "groq"] = Field(
         default="ollama",
         description="LLM provider to use"
     )
@@ -28,7 +28,7 @@ class LLMConfig(BaseModel):
         description="Ollama base URL"
     )
     ollama_model: str = Field(
-        default="llama3.2",
+        default="llama3.2:1b",
         description="Ollama model name"
     )
 
@@ -48,12 +48,36 @@ class LLMConfig(BaseModel):
         description="OpenAI temperature parameter"
     )
 
+    # Groq settings
+    groq_api_key: Optional[str] = Field(
+        default=None,
+        description="Groq API key"
+    )
+    groq_model: str = Field(
+        default="llama-3.1-70b-versatile",
+        description="Groq model name"
+    )
+    groq_temperature: float = Field(
+        default=0.7,
+        ge=0.0,
+        le=2.0,
+        description="Groq temperature parameter"
+    )
+
     @field_validator("openai_api_key")
     @classmethod
     def validate_openai_key(cls, v, info):
         """Validate OpenAI API key if provider is openai."""
         if info.data.get("provider") == "openai" and not v:
             raise ValueError("OpenAI API key is required when provider is 'openai'")
+        return v
+
+    @field_validator("groq_api_key")
+    @classmethod
+    def validate_groq_key(cls, v, info):
+        """Validate Groq API key if provider is groq."""
+        if info.data.get("provider") == "groq" and not v:
+            raise ValueError("Groq API key is required when provider is 'groq'")
         return v
 
 
@@ -261,10 +285,13 @@ class Config(BaseModel):
             llm=LLMConfig(
                 provider=os.getenv("LLM_PROVIDER", "ollama"),
                 ollama_base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
-                ollama_model=os.getenv("OLLAMA_MODEL", "llama3.2"),
+                ollama_model=os.getenv("OLLAMA_MODEL", "llama3.2:1b"),
                 openai_api_key=os.getenv("OPENAI_API_KEY"),
                 openai_model=os.getenv("OPENAI_MODEL", "gpt-4-turbo-preview"),
                 openai_temperature=float(os.getenv("OPENAI_TEMPERATURE", "0.7")),
+                groq_api_key=os.getenv("GROQ_API_KEY"),
+                groq_model=os.getenv("GROQ_MODEL", "llama-3.1-70b-versatile"),
+                groq_temperature=float(os.getenv("GROQ_TEMPERATURE", "0.7")),
             ),
             agent=AgentConfig(
                 max_concurrent_agents=int(os.getenv("MAX_CONCURRENT_AGENTS", "5")),
