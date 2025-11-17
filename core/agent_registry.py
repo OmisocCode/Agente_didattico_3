@@ -5,8 +5,8 @@ Centralized registry for discovering and managing agents.
 """
 
 import logging
-from typing import Dict, List, Optional, Set
-from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Set
+from dataclasses import dataclass, field
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -22,6 +22,7 @@ class AgentInfo:
         agent_type: Type of agent (researcher, analyst, etc.)
         name: Human-readable agent name
         capabilities: List of agent capabilities
+        agent_instance: Reference to actual agent instance
         status: Current status (idle, busy, offline)
         workload: Current workload (number of active tasks)
         total_tasks_completed: Total tasks completed
@@ -33,6 +34,7 @@ class AgentInfo:
     agent_type: str
     name: str
     capabilities: List[str]
+    agent_instance: Any = field(default=None, repr=False)  # Don't show in repr
     status: str = "idle"  # idle, busy, offline
     workload: int = 0
     total_tasks_completed: int = 0
@@ -127,7 +129,8 @@ class AgentRegistry:
         agent_id: str,
         agent_type: str,
         name: str,
-        capabilities: List[str]
+        capabilities: List[str],
+        agent_instance: Optional[Any] = None
     ) -> AgentInfo:
         """
         Register an agent.
@@ -137,6 +140,7 @@ class AgentRegistry:
             agent_type: Agent type
             name: Agent name
             capabilities: Agent capabilities
+            agent_instance: Optional reference to agent instance
 
         Returns:
             AgentInfo object
@@ -148,7 +152,8 @@ class AgentRegistry:
             agent_id=agent_id,
             agent_type=agent_type,
             name=name,
-            capabilities=capabilities
+            capabilities=capabilities,
+            agent_instance=agent_instance
         )
 
         self.agents[agent_id] = agent_info
