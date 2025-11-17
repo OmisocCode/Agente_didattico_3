@@ -1,0 +1,81 @@
+# Parallel Research Workflow
+# Multiple researchers work in parallel, then results are analyzed and combined
+
+name: "Parallel Multi-Source Research"
+description: "Conducts parallel research from multiple sources, then aggregates and analyzes results"
+version: "1.0"
+
+parameters:
+  primary_topic: "Artificial Intelligence"
+  secondary_topic: "Machine Learning"
+  tertiary_topic: "Deep Learning"
+  aggregation_strategy: "consensus"
+
+steps:
+  # Parallel Research Phase
+  - id: research_primary
+    agent_type: Researcher
+    action: research
+    params:
+      topic: "{{ parameters.primary_topic }}"
+      depth: "medium"
+    priority: high
+    timeout: 180
+    description: "Research primary topic"
+
+  - id: research_secondary
+    agent_type: Researcher
+    action: research
+    params:
+      topic: "{{ parameters.secondary_topic }}"
+      depth: "medium"
+    priority: high
+    timeout: 180
+    description: "Research secondary topic (parallel with primary)"
+
+  - id: research_tertiary
+    agent_type: Researcher
+    action: research
+    params:
+      topic: "{{ parameters.tertiary_topic }}"
+      depth: "medium"
+    priority: high
+    timeout: 180
+    description: "Research tertiary topic (parallel with primary and secondary)"
+
+  # Analysis Phase (depends on all research)
+  - id: comparative_analysis
+    agent_type: Analyst
+    action: analyze
+    depends_on: [research_primary, research_secondary, research_tertiary]
+    params:
+      data_sets:
+        - "{{ steps.research_primary.output }}"
+        - "{{ steps.research_secondary.output }}"
+        - "{{ steps.research_tertiary.output }}"
+      analysis_type: "comparative"
+      identify_patterns: true
+    priority: medium
+    timeout: 240
+    description: "Comparative analysis of all research results"
+
+  # Synthesis Phase
+  - id: synthesis
+    agent_type: Writer
+    action: write
+    depends_on: [comparative_analysis]
+    params:
+      content: "{{ steps.comparative_analysis.output }}"
+      style: "academic"
+      include_comparisons: true
+    priority: medium
+    timeout: 200
+    description: "Synthesize findings into cohesive report"
+
+output:
+  final_report: "{{ steps.synthesis.output }}"
+  research_summary:
+    primary: "{{ steps.research_primary.output }}"
+    secondary: "{{ steps.research_secondary.output }}"
+    tertiary: "{{ steps.research_tertiary.output }}"
+  analysis: "{{ steps.comparative_analysis.output }}"

@@ -1,0 +1,80 @@
+# Deep Research Workflow
+# Comprehensive research with analysis, fact-checking, and professional report
+
+name: "Deep Research Report"
+description: "Conducts comprehensive research with multi-agent analysis, fact-checking, and professional report generation"
+version: "1.0"
+
+# Workflow parameters (can be overridden at execution)
+parameters:
+  topic: "AI trends"
+  depth: "deep"
+  max_sources: 10
+  report_style: "professional"
+  report_format: "markdown"
+
+# Workflow steps
+steps:
+  # Step 1: Research Phase
+  - id: research_phase
+    agent_type: Researcher
+    action: research
+    params:
+      topic: "{{ parameters.topic }}"
+      depth: "{{ parameters.depth }}"
+      max_sources: "{{ parameters.max_sources }}"
+    priority: high
+    retry: 2
+    timeout: 300
+    description: "Gather comprehensive information on the topic"
+
+  # Step 2: Analysis Phase
+  - id: analysis_phase
+    agent_type: Analyst
+    action: analyze
+    depends_on: [research_phase]
+    input: "{{ steps.research_phase.output }}"
+    params:
+      analysis_type: "comprehensive"
+      include_insights: true
+    priority: high
+    timeout: 240
+    description: "Analyze research findings for quality and insights"
+
+  # Step 3: Fact-Checking Phase
+  - id: verification_phase
+    agent_type: FactChecker
+    action: verify
+    depends_on: [research_phase, analysis_phase]
+    params:
+      claims_source: "{{ steps.analysis_phase.output }}"
+      sources: "{{ steps.research_phase.output.sources }}"
+      confidence_threshold: 0.7
+    priority: medium
+    timeout: 180
+    description: "Verify key claims and facts"
+
+  # Step 4: Report Writing Phase
+  - id: writing_phase
+    agent_type: Writer
+    action: write
+    depends_on: [research_phase, analysis_phase, verification_phase]
+    params:
+      research_data: "{{ steps.research_phase.output }}"
+      analysis_data: "{{ steps.analysis_phase.output }}"
+      verification_data: "{{ steps.verification_phase.output }}"
+      style: "{{ parameters.report_style }}"
+      format: "{{ parameters.report_format }}"
+    priority: medium
+    timeout: 300
+    description: "Generate comprehensive professional report"
+
+# Workflow output
+output:
+  report: "{{ steps.writing_phase.output }}"
+  metadata:
+    topic: "{{ parameters.topic }}"
+    research_sources: "{{ steps.research_phase.output.sources }}"
+    quality_score: "{{ steps.analysis_phase.output.quality_score }}"
+    verification_rate: "{{ steps.verification_phase.output.verification_rate }}"
+    generated_at: "{{ execution.timestamp }}"
