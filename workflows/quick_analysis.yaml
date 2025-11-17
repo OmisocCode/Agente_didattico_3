@@ -1,0 +1,55 @@
+# Quick Analysis Workflow
+# Fast research and analysis without extensive fact-checking
+
+name: "Quick Analysis"
+description: "Rapid research and analysis for time-sensitive needs"
+version: "1.0"
+
+parameters:
+  topic: "Technology trends"
+  priority_level: "high"
+  max_time: 300
+
+steps:
+  # Quick Research
+  - id: quick_research
+    agent_type: Researcher
+    action: research
+    params:
+      topic: "{{ parameters.topic }}"
+      depth: "shallow"
+      max_sources: 5
+    priority: "{{ parameters.priority_level }}"
+    timeout: 120
+    description: "Quick information gathering"
+
+  # Rapid Analysis
+  - id: rapid_analysis
+    agent_type: Analyst
+    action: analyze
+    depends_on: [quick_research]
+    input: "{{ steps.quick_research.output }}"
+    params:
+      analysis_type: "rapid"
+      focus: "key_insights"
+    priority: "{{ parameters.priority_level }}"
+    timeout: 120
+    description: "Fast analysis of key points"
+
+  # Brief Summary
+  - id: brief_summary
+    agent_type: Writer
+    action: write
+    depends_on: [rapid_analysis]
+    params:
+      content: "{{ steps.rapid_analysis.output }}"
+      style: "brief"
+      max_length: 500
+    priority: "{{ parameters.priority_level }}"
+    timeout: 60
+    description: "Generate brief summary"
+
+output:
+  summary: "{{ steps.brief_summary.output }}"
+  key_insights: "{{ steps.rapid_analysis.output.insights }}"
+  sources: "{{ steps.quick_research.output.sources }}"
