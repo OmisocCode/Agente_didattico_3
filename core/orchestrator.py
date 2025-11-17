@@ -69,9 +69,12 @@ class Orchestrator:
             agent: Agent instance to register
         """
         # Register with agent registry
+        # Use class name as agent_type for easier lookup
+        agent_type = agent.__class__.__name__
+
         self.agent_registry.register(
             agent_id=agent.agent_id,
-            agent_type=agent.name,
+            agent_type=agent_type,
             name=agent.name,
             capabilities=agent.capabilities
         )
@@ -83,7 +86,7 @@ class Orchestrator:
         # Register with message bus
         self.message_bus.register_agent(agent.agent_id)
 
-        logger.info(f"Agent registered with orchestrator: {agent.name}")
+        logger.info(f"Agent registered with orchestrator: {agent.name} (type: {agent_type})")
 
     def unregister_agent(self, agent_id: str):
         """
