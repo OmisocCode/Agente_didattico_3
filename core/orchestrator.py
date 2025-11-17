@@ -56,6 +56,9 @@ class Orchestrator:
         self.message_bus = message_bus or MessageBus()
         self.shared_memory = shared_memory or SharedMemory()
 
+        # Register orchestrator with message bus
+        self.message_bus.register_agent("orchestrator")
+
         # Execution state
         self.running = False
 
@@ -76,7 +79,8 @@ class Orchestrator:
             agent_id=agent.agent_id,
             agent_type=agent_type,
             name=agent.name,
-            capabilities=agent.capabilities
+            capabilities=agent.capabilities,
+            agent_instance=agent  # Store reference to agent instance
         )
 
         # Connect agent to infrastructure
@@ -159,6 +163,10 @@ class Orchestrator:
             logger.warning(f"No available agent found for task {task.task_id[:8]} (type: {task.agent_type})")
             return False
 
+        if not agent_info.agent_instance:
+            logger.error(f"Agent {agent_info.name} has no instance reference")
+            return False
+
         logger.info(f"Assigning task {task.task_id[:8]} to agent {agent_info.name}")
 
         # Update agent workload
@@ -167,28 +175,25 @@ class Orchestrator:
         # Store task in shared memory
         self.shared_memory.write(f"task_{task.task_id}", task.to_dict(), "orchestrator")
 
-        # Send task to agent via message bus
-        from agents.base_agent import Message
-        message = Message(
-            sender="orchestrator",
-            receiver=agent_info.agent_id,
-            msg_type="task",
-            content={
-                "task_id": task.task_id,
-                "action": task.action,
-                "input_data": task.input_data,
-                "metadata": task.metadata
-            }
-        )
+        try:
+            # Call agent method directly
+            agent = agent_info.agent_instance
 
-        self.message_bus.send(message)
+            # Check if agent has the requested action method
+            if hasattr(agent, task.action):
+                method = getattr(agent, task.action)
+                # Call with input_data (handle both dict and other types)
+                if task.input_data and isinstance(task.input_data, dict):
+                    result = method(**task.input_data)
+                else:
+                    result = method(task.input_data) if task.input_data is not None else method()
+            elif hasattr(agent, 'process'):
+                # Fallback to generic process method
+                result = agent.process(task.input_data)
+            else:
+                raise AttributeError(f"Agent has no method '{task.action}' or 'process'")
 
-        # Wait for response (with timeout)
-        response = self.message_bus.receive("orchestrator", timeout=task.metadata.get("timeout", 60))
-
-        if response and response.msg_type == "result":
             # Task completed successfully
-            result = response.content
             self.task_queue.complete_task(task.task_id, result)
             self.agent_registry.record_task_completion(agent_info.agent_id, success=True)
 
@@ -198,9 +203,9 @@ class Orchestrator:
             logger.info(f"Task {task.task_id[:8]} completed successfully")
             return True
 
-        else:
-            # Task failed or timed out
-            error = "Agent did not respond in time" if not response else "Unexpected response"
+        except Exception as e:
+            # Task failed
+            error = str(e)
             self.task_queue.fail_task(task.task_id, error)
             self.agent_registry.record_task_completion(agent_info.agent_id, success=False)
 
